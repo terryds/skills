@@ -182,6 +182,13 @@ One line per decision + why. Append-only.
 
 ---
 
-## SPEC.md (the "dist" — see SKILL.md Step 5)
+## spec/ (the "dist" — see SKILL.md Step 5)
 
-Sections: **What / Look / How / Not doing**. Quality bar: a stranger could build the project from it alone. No `Status:` line — its existence means planning shipped.
+A folder, not a single file:
+
+- `README.md` — what + v1 features + **Not doing** + index of the other files
+- `plans/<area>.md` — one plan per project-relevant area (feature / surface / subsystem — whatever split fits the project)
+- `structure.md` — planned codebase layout, annotated
+- `roadmap.md` — build order M0 → Mn; M0 = walking skeleton; each milestone has a verifiable "done when"
+
+Quality bar: a stranger could build the project from `spec/` alone, in roadmap order. No `Status:` lines — the folder's existence means planning shipped.

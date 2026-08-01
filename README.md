@@ -25,16 +25,16 @@ cp -r /tmp/my-skills/skills/helpmeplan ~/.claude/skills/helpmeplan
 
 | Skill | What it does |
 |-------|--------------|
-| [helpmeplan](skills/helpmeplan/) | Guided planning workflow — takes a project from brainstorm to a build-ready `SPEC.md` through 5 phases: brainstorm, scope, design, mockups, architecture. Filesystem is the state; it detects where you left off and resumes. |
+| [helpmeplan](skills/helpmeplan/) | Guided planning workflow — takes a project from brainstorm to a build-ready `spec/` folder through 5 phases: brainstorm, scope, design, mockups, architecture. Filesystem is the state; it detects where you left off and resumes. |
 
 ### helpmeplan
 
-Planning happens in a `planning/` folder (the messy "src"), and conclusions get distilled into `SPEC.md` (the clean "dist" — the only thing coding needs).
+Planning happens in a `planning/` folder (the messy "src"), and conclusions get distilled into a `spec/` folder (the clean "dist" — the only thing coding needs): a `README.md` overview, per-area plan files in `plans/`, a `structure.md` for the planned codebase layout, and a `roadmap.md` with the build order from M0 (walking skeleton) onward.
 
 ```
 /helpmeplan            # detect state, resume the active phase (or scaffold on first run)
 /helpmeplan status     # report where planning stands, do no work
-/helpmeplan spec       # jump to SPEC.md distillation
+/helpmeplan spec       # jump to spec/ distillation
 /helpmeplan redo 3     # reopen a completed phase
 ```
 
@@ -46,7 +46,7 @@ Planning happens in a `planning/` folder (the messy "src"), and conclusions get 
 | 4 | Mockups | One mockup file per UI surface | "I'd be happy if the real thing looked like this" |
 | 5 | Architecture | `architecture.md` | Every mockup element maps to a component/API |
 
-Then `SPEC.md` is distilled from all of it — quality bar: *a stranger could build the project from it alone.*
+Then `spec/` is distilled from all of it — quality bar: *a stranger could build the project from it alone, in roadmap order.*
 
 ## License
 

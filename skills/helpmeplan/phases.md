@@ -20,7 +20,6 @@ Questions:
 - What do existing tools/competitors do badly or charge for?
 - What would make you *better* at this, not just faster?
 - Who is this for — just you, or others too?
-- What's the "wow" demo moment — the 10-second clip that sells it?
 
 Template:
 

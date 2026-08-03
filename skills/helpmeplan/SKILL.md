@@ -56,7 +56,7 @@ Read the active phase's section in [phases.md](phases.md), then:
 - **Ask questions 1–2 at a time**, conversationally. Never dump the full question list. Use AskUserQuestion for discrete choices (e.g. "blend in vs. stand out"); free-form chat for open-ended ones (brainstorming).
 - **Capture as you go** — write the user's answers into the phase's deliverable file continuously, in the user's voice, not at the end.
 - **Log decisions** — whenever a real choice gets made, append one line to `planning/decisions.md`: `- [phase] decision — why`.
-- **Build phase artifacts** where the phase calls for them (styleguide.html in phase 3, mockup pages in phase 4). Offer to publish HTML as Artifacts for click-through review. Mockups are throwaway: never upgrade mockup files into real code.
+- **Build phase artifacts** where the phase calls for them (styleguide.html in phase 3, mockup pages in phase 4; see [phases.md](phases.md)). Offer to publish HTML as Artifacts for click-through review. Mockups are throwaway: never upgrade them into real code.
 
 ## Step 4 — Gate before advancing
 
@@ -66,7 +66,7 @@ Each phase has a "done when" criterion in [phases.md](phases.md). When it looks 
 2. On confirmation: flip the deliverable's `Status:` line to `done`, announce the next phase in one line.
 3. If the user wants to skip ahead or work out of order: **warn once** (name what's incomplete and the risk), then comply. This skill is a guide, not a cop.
 
-## Step 5 — Distill the spec/ folder (the final step)
+## Step 5 — Distill the spec/ folder
 
 When all 5 phases are done (or the user forces it via `spec`):
 
@@ -88,6 +88,44 @@ When all 5 phases are done (or the user forces it via `spec`):
    - **`roadmap.md`** — build order as milestones **M0, M1, M2…**. M0 is the walking skeleton: project scaffold matching `structure.md` plus the thinnest end-to-end slice that actually runs. Each milestone states: goal in one line, which `plans/` files it draws from, and a verifiable **done when**. Order by dependency first, then risk — put the scariest/most load-bearing work early. Every v1 feature in README.md must appear in exactly one milestone.
 3. Quality bar: *a stranger could build the project from `spec/` alone, working in roadmap order.* Read it back with that test in mind; fix gaps before presenting.
 4. After coding starts: if reality forces a change, update the relevant `spec/` file first, then the code.
+
+## Step 6 — Offer the overnight build script
+
+Once `spec/` is delivered, offer **once** to generate `overnight.sh` in the project root — a script the user launches before walking away. It runs Claude Code unattended overnight to build the project from `spec/`, so the user can test the result the next morning.
+
+What the generated script must do:
+
+- Run the agent in a **detached tmux session** so it survives closing the terminal (`tmux attach -t overnight` to watch live). **tmux is required** — when generating the script, check it's installed; if missing, offer to install it (`brew install tmux` / `apt install tmux` / `pkg install tmux` on Termux) or ask the user to. If running under Termux on a phone, grab `termux-wake-lock` first so the device doesn't sleep.
+- Launch `claude -p "<kickoff prompt>" --permission-mode bypassPermissions`, teeing output to a timestamped log file.
+- The kickoff prompt tells the agent: build from `spec/` only, in `roadmap.md` order starting at M0; verify each milestone's "done when" before advancing; `git commit` after each milestone; **append to `BUILD-LOG.md` after each milestone** (what was built, how the "done when" was verified, any deviation from spec and why) so there's a readable mid-run record even if the run dies overnight; when finished or blocked, write `MORNING-REPORT.md` — what shipped, how to test it, what's unfinished and why.
+
+Template (adapt the prompt to the project):
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")"
+command -v termux-wake-lock >/dev/null 2>&1 && termux-wake-lock
+LOG="overnight-$(date +%Y%m%d-%H%M).log"
+PROMPT='Build this project from spec/ only. Work through spec/roadmap.md in order,
+starting at M0. Verify each milestone'\''s "done when" before advancing, and git
+commit after each milestone. After each milestone, append an entry to BUILD-LOG.md:
+what you built, how you verified the "done when", and any deviation from spec and
+why. When finished or blocked, write MORNING-REPORT.md: what shipped, how to test
+it, and what is unfinished and why.'
+command -v tmux >/dev/null 2>&1 || {
+  echo "tmux is required. Install it first: brew install tmux / apt install tmux / pkg install tmux (Termux)" >&2
+  exit 1
+}
+CMD="claude -p $(printf %q "$PROMPT") --permission-mode bypassPermissions"
+tmux new-session -d -s overnight "$CMD 2>&1 | tee $(printf %q "$LOG")"
+echo "Agent running in tmux session 'overnight' — watch: tmux attach -t overnight"
+echo "Log: $LOG — in the morning, read MORNING-REPORT.md"
+```
+
+After writing the file, make it executable — `chmod +x overnight.sh` (on Linux/macOS/Termux; skip on Windows) — otherwise the user hits "Permission denied" on `./overnight.sh`. Then tell them the exact command to run: `./overnight.sh`.
+
+When offering, **warn plainly**: `bypassPermissions` means the agent runs commands without asking. The user should commit/push everything first and only run it in a directory (and on a machine) they're comfortable handing over. Generate the script and stop — **never launch it yourself**; it's the user's to run.
 
 ## Rules
 

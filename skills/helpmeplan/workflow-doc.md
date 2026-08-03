@@ -16,7 +16,7 @@ planning/                 # "src" of planning — one folder per phase, in order
 ├── 1-brainstorm/ideas.md
 ├── 2-scope/scope.md
 ├── 3-design/             # brand.md + styleguide.html
-├── 4-mockups/            # one mockup file per UI surface (.html, or transcripts for text UIs)
+├── 4-mockups/            # one mockup file per UI surface
 ├── 5-architecture/architecture.md
 └── decisions.md          # running log: one line per decision + why
 spec/                     # "dist" — distilled build plan, output of all 5 phases
@@ -45,7 +45,7 @@ Each deliverable starts with a `Status: in-progress` line that flips to `done` w
 ## Rules of the road
 
 - Work in `planning/`, promote conclusions to `spec/`. The spec is the contract.
-- **Mockups are throwaway.** Never upgrade mockup files into real code — rebuild cleanly with the mockup as reference.
+- **Mockups are throwaway.** Never upgrade them into real code — rebuild cleanly with them as reference.
 - Log every decision in `planning/decisions.md` — one line + why.
 - Don't skip phases without a reason; each has a "done when" gate.
 - Build in `spec/roadmap.md` order — M0 (walking skeleton) first, each milestone verified before the next.
@@ -57,3 +57,4 @@ Each deliverable starts with a `Status: in-progress` line that flips to `done` w
 - `/helpmeplan status` — where are we?
 - `/helpmeplan spec` — distill the `spec/` folder now
 - `/helpmeplan redo <n>` — reopen a completed phase
+- `./overnight.sh` — offered once the spec ships: launches Claude Code unattended (detached tmux, `bypassPermissions`) to build the spec overnight. It appends to `BUILD-LOG.md` after every milestone and writes `MORNING-REPORT.md` when done — read those when you wake up. Commit/push everything before running it.

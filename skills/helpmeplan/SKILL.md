@@ -97,7 +97,7 @@ What the generated script must do:
 
 - Run the agent in a **detached tmux session** so it survives closing the terminal (`tmux attach -t overnight` to watch live). **tmux is required** — when generating the script, check it's installed; if missing, offer to install it (`brew install tmux` / `apt install tmux` / `pkg install tmux` on Termux) or ask the user to. If running under Termux on a phone, grab `termux-wake-lock` first so the device doesn't sleep.
 - Launch `claude -p "<kickoff prompt>" --permission-mode bypassPermissions`, teeing output to a timestamped log file.
-- The kickoff prompt tells the agent: build from `spec/` only, in `roadmap.md` order starting at M0; **write and run tests for each milestone** — its "done when" is verified by tests passing, not by claiming it works; `git commit` after each milestone; **append to `BUILD-LOG.md` after each milestone** (what was built, the test commands run and their results — pass/fail counts, not just "tests pass" — and any deviation from spec and why) so there's a readable mid-run record even if the run dies overnight; when finished or blocked, write `MORNING-REPORT.md` — what shipped, how to test it, what's unfinished and why.
+- The kickoff prompt tells the agent: build from `spec/` only, in `roadmap.md` order starting at M0; verify each milestone's "done when" before advancing; `git commit` after each milestone; **append to `BUILD-LOG.md` after each milestone** (what was built, how the "done when" was verified, any deviation from spec and why) so there's a readable mid-run record even if the run dies overnight; when finished or blocked, write `MORNING-REPORT.md` — what shipped, how to test it, what's unfinished and why.
 
 Template (adapt the prompt to the project):
 
@@ -108,12 +108,11 @@ cd "$(dirname "$0")"
 command -v termux-wake-lock >/dev/null 2>&1 && termux-wake-lock
 LOG="overnight-$(date +%Y%m%d-%H%M).log"
 PROMPT='Build this project from spec/ only. Work through spec/roadmap.md in order,
-starting at M0. For each milestone, write and run tests that verify its "done when"
-— do not advance or commit until they pass. git commit after each milestone. After
-each milestone, append an entry to BUILD-LOG.md: what you built, the exact test
-commands you ran and their results (pass/fail counts), and any deviation from spec
-and why. When finished or blocked, write MORNING-REPORT.md: what shipped, how to
-test it, and what is unfinished and why.'
+starting at M0. Verify each milestone'\''s "done when" before advancing, and git
+commit after each milestone. After each milestone, append an entry to BUILD-LOG.md:
+what you built, how you verified the "done when", and any deviation from spec and
+why. When finished or blocked, write MORNING-REPORT.md: what shipped, how to test
+it, and what is unfinished and why.'
 command -v tmux >/dev/null 2>&1 || {
   echo "tmux is required. Install it first: brew install tmux / apt install tmux / pkg install tmux (Termux)" >&2
   exit 1

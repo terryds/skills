@@ -46,7 +46,7 @@ Planning happens in a `planning/` folder (the messy "src"), and conclusions get 
 | 4 | Mockups | One mockup file per UI surface | "I'd be happy if the real thing looked like this" |
 | 5 | Architecture | `architecture.md` | Every mockup element maps to a component/API |
 
-Then `spec/` is distilled from all of it — quality bar: *a stranger could build the project from it alone, in roadmap order.* Once the spec ships, the skill offers to generate an `overnight.sh` that launches Claude Code unattended (detached tmux, `bypassPermissions` mode) to build the spec while you sleep, leaving a `MORNING-REPORT.md` to check the next morning.
+Then `spec/` is distilled from all of it — quality bar: *a stranger could build the project from it alone, in roadmap order.* Once the spec ships, the skill offers to generate an `overnight.sh` that launches Claude Code unattended (detached tmux, `bypassPermissions` mode) to build the spec while you sleep — everything lands in a `build/` directory (code, per-milestone `BUILD-LOG.md`, and a `MORNING-REPORT.md` to check the next morning), keeping the project root clean.
 
 ## License
 

@@ -24,7 +24,7 @@ spec/                     # "dist" — distilled build plan, output of all 5 pha
 ├── plans/                # one plan file per area of this project
 ├── structure.md          # planned codebase layout
 └── roadmap.md            # build order: M0 (walking skeleton) → Mn
-src/                      # real code, built from spec/ only, in roadmap order
+build/                    # real code, built from spec/ only, in roadmap order — plus run artifacts (BUILD-LOG.md, MORNING-REPORT.md, logs)
 ```
 
 **Work happens in `planning/`, conclusions get promoted to `spec/`. If it's not in the spec, it doesn't get built.**
@@ -57,4 +57,4 @@ Each deliverable starts with a `Status: in-progress` line that flips to `done` w
 - `/helpmeplan status` — where are we?
 - `/helpmeplan spec` — distill the `spec/` folder now
 - `/helpmeplan redo <n>` — reopen a completed phase
-- `./overnight.sh` — offered once the spec ships: launches Claude Code unattended (detached tmux, `bypassPermissions`) to build the spec overnight. It appends to `BUILD-LOG.md` after every milestone and writes `MORNING-REPORT.md` when done — read those when you wake up. Commit/push everything before running it.
+- `./overnight.sh` — offered once the spec ships: launches Claude Code unattended (detached tmux, `bypassPermissions`) to build the spec overnight. Everything lands in `build/` — the code, `build/BUILD-LOG.md` (appended after every milestone), and `build/MORNING-REPORT.md` when done — read those when you wake up. Commit/push everything before running it.

@@ -57,4 +57,4 @@ Each deliverable starts with a `Status: in-progress` line that flips to `done` w
 - `/helpmeplan status` — where are we?
 - `/helpmeplan spec` — distill the `spec/` folder now
 - `/helpmeplan redo <n>` — reopen a completed phase
-- `./overnight.sh` — offered once the spec ships: launches Claude Code unattended (detached tmux, `bypassPermissions`) to build the spec overnight. It appends to `BUILD-LOG.md` after every milestone and writes `MORNING-REPORT.md` when done — read those when you wake up. Commit/push everything before running it.
+- `./overnight.sh` — offered once the spec ships: launches Claude Code unattended (detached tmux, `bypassPermissions`) to build the spec overnight. It appends to `BUILD-LOG.md` after every milestone (what was built + test results) and writes `MORNING-REPORT.md` when done — read those when you wake up. Commit/push everything before running it.

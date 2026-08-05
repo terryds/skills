@@ -96,7 +96,7 @@ Once `spec/` is delivered, offer **once** to generate `overnight.sh` in the proj
 What the generated script must do:
 
 - Run the agent in a **detached tmux session** so it survives closing the terminal (`tmux attach -t overnight` to watch live). **tmux is required** — when generating the script, check it's installed; if missing, offer to install it (`brew install tmux` / `apt install tmux` / `pkg install tmux` on Termux) or ask the user to. If running under Termux on a phone, grab `termux-wake-lock` first so the device doesn't sleep.
-- Launch `claude -p "<kickoff prompt>" --permission-mode bypassPermissions`, teeing output to a timestamped log file.
+- Launch `claude "<kickoff prompt>" --permission-mode bypassPermissions` as the **interactive TUI, not `-p` print mode** — attaching to the tmux session then shows the live session, whereas piping print-mode output blinds the pane (raw `^[[A` escape codes) and buffers the log. Capture a raw timestamped log with `tmux pipe-pane` instead of `tee`.
 - **Everything the run produces goes in a `build/` directory** — the script `mkdir -p`s it, the log lives there, and the prompt confines the agent to it. The project root stays clean: no code, configs, logs, or reports scattered next to `planning/` and `spec/`.
 - The kickoff prompt tells the agent: build from `spec/` only, **entirely inside `build/`** (lay out the code per `spec/structure.md` rooted there, never write outside it), in `roadmap.md` order starting at M0; verify each milestone's "done when" before advancing; `git commit` after each milestone; **append to `build/BUILD-LOG.md` after each milestone** (what was built, how the "done when" was verified, any deviation from spec and why) so there's a readable mid-run record even if the run dies overnight; when finished or blocked, write `build/MORNING-REPORT.md` — what shipped, how to test it, what's unfinished and why.
 
@@ -121,13 +121,22 @@ command -v tmux >/dev/null 2>&1 || {
   echo "tmux is required. Install it first: brew install tmux / apt install tmux / pkg install tmux (Termux)" >&2
   exit 1
 }
-CMD="claude -p $(printf %q "$PROMPT") --permission-mode bypassPermissions"
-tmux new-session -d -s overnight "$CMD 2>&1 | tee $(printf %q "$LOG")"
-echo "Agent running in tmux session 'overnight' — watch: tmux attach -t overnight"
-echo "Log: $LOG — in the morning, read build/MORNING-REPORT.md"
+# resolve claude to an absolute path — tmux spawns a non-login shell whose PATH
+# may not include ~/.local/bin
+CLAUDE_BIN="$(command -v claude || true)"
+[ -z "$CLAUDE_BIN" ] && [ -x "$HOME/.local/bin/claude" ] && CLAUDE_BIN="$HOME/.local/bin/claude"
+[ -z "$CLAUDE_BIN" ] && { echo "claude CLI not found (checked PATH and ~/.local/bin)" >&2; exit 1; }
+# interactive TUI (not -p print mode): attaching shows the live session; piping
+# would both blind the pane and buffer the output, so the pane runs claude directly
+CMD="$(printf %q "$CLAUDE_BIN") $(printf %q "$PROMPT") --permission-mode bypassPermissions"
+tmux new-session -d -s overnight "$CMD"
+# raw pane capture as the log (includes escape codes; BUILD-LOG.md is the readable record)
+tmux pipe-pane -t overnight -o "cat >> $(printf %q "$PWD/$LOG")"
+echo "Agent running in tmux session 'overnight' — watch: tmux attach -t overnight (detach: Ctrl+B d)"
+echo "Raw log: $LOG · readable record: build/BUILD-LOG.md · morning: build/MORNING-REPORT.md"
 ```
 
-After writing the file, make it executable — `chmod +x overnight.sh` (on Linux/macOS/Termux; skip on Windows) — otherwise the user hits "Permission denied" on `./overnight.sh`. Then tell them the exact command to run: `./overnight.sh`.
+After writing the file, make it executable — `chmod +x overnight.sh` (on Linux/macOS/Termux; skip on Windows) — otherwise the user hits "Permission denied" on `./overnight.sh`. The `chmod` may trigger a permission prompt depending on the user's permission mode — **before running it, tell the user a `chmod` is coming and ask them to approve the prompt if one appears**, so the flow isn't silently interrupted. If it still gets blocked or denied, don't retry — just tell the user to run `chmod +x overnight.sh` themselves. Then tell them the exact command to run: `./overnight.sh`.
 
 When offering, **warn plainly**: `bypassPermissions` means the agent runs commands without asking. The user should commit/push everything first and only run it in a directory (and on a machine) they're comfortable handing over. Generate the script and stop — **never launch it yourself**; it's the user's to run.
 

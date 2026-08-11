@@ -109,6 +109,14 @@ Status: in-progress
 
 The hero is the page's first 5 seconds: headline (the pitch from phase 1), subline, primary CTA, and one visual moment. Build 2–3 variants that differ in *concept* (e.g. type-driven vs. shader-backdrop vs. product-shot with SVG framing), all obeying the phase-2 styleguide.
 
+**Plan before building.** Never jump straight to code. First ask the pre-build questions below, then present a short plan for user approval:
+
+1. **Pitch each variant** in 2–3 sentences: its concept, headline treatment, and visual moment.
+2. **Describe the assets you intend to build** — for each shader, what the effect looks like and how it moves (e.g. "liquid ink in the accent color folding over itself, reacting to cursor"); for SVG assets, what they depict. Concrete enough that the user can veto or redirect before you spend the effort.
+3. **Offer the background-video alternative**: instead of (or alongside) a shader, the user can supply a background video — tell them they can search stock footage on Pexels or generate a clip with Sora 2 (or a still image with Nano Banana Pro). If they want this, ask them to drop the file in `landing/3-hero/assets/` and build a variant around it (muted, looped, `playsinline`, dark scrim for legibility, poster-image fallback).
+
+Adjust the plan on feedback, then build. A video-based variant references its file by relative path — the one allowed exception to the self-contained rule; note in `hero.md` that this variant reviews from disk, not as an Artifact, and that phase 5 inherits the same caveat.
+
 Hard rules:
 
 - **No slop.** No unnecessary text, badges, decorative icons, fake logos-of-trust rows, or ornament that doesn't serve the pitch. If an element can be removed without weakening the message, remove it.

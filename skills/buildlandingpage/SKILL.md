@@ -55,7 +55,7 @@ Read the active phase's section in [phases.md](phases.md), then:
 - **Ask questions 1–2 at a time**, conversationally. Never dump the full question list. Use AskUserQuestion for discrete choices (picking a style direction, a hero variant); free-form chat for open-ended ones (brainstorming the pitch).
 - **Capture as you go** — write the user's answers into the phase's deliverable file continuously, in the user's voice, not at the end.
 - **Log decisions** — whenever a real choice gets made, append one line to `landing/decisions.md`: `- [phase] decision — why`.
-- **Generate options, then ask** — phases 2 and 3 are option-driven: build 2–3 genuinely distinct variants, publish each as an Artifact so the user can click through them side by side, then ask which one (or "none — here's what I want instead"). If the user rejects all options, ask what's off and generate a fresh round; never argue for a variant.
+- **Generate options, then ask** — phases 2 and 3 are option-driven: build 2–3 genuinely distinct variants, publish each as an Artifact so the user can click through them side by side, then ask which one (or "none — here's what I want instead"). If the user rejects all options, ask what's off and generate a fresh round; never argue for a variant. Phase 3 additionally requires **plan approval before building**: pitch the variant concepts and intended shader/SVG/video assets first (see [phases.md](phases.md)).
 - **Design bar (phases 2–5):** load the `artifact-design` skill before building any styleguide, hero, or page file. No slop: no filler copy, no lorem ipsum, no decorative elements that don't earn their place, no stock gradient-blob clichés, no icon-grid padding. Every word and pixel must serve the pitch from phase 1. When in doubt, remove.
 
 ## Step 4 — Gate before advancing
@@ -71,6 +71,6 @@ Each phase has a "done when" criterion in [phases.md](phases.md). When it looks 
 - Filesystem is the only state — always re-detect, never assume.
 - Never overwrite user content; append and edit surgically.
 - One phase at a time; questions in small doses.
-- Every generated page (styleguide options, hero variants, final page) is **self-contained**: inline CSS/JS, no CDN links, no external fonts or images — system font stacks and inline SVG / data URIs / generated WebGL only. This keeps every file openable from disk and publishable as an Artifact.
+- Every generated page (styleguide options, hero variants, final page) is **self-contained**: inline CSS/JS, no CDN links, no external fonts or images — system font stacks and inline SVG / data URIs / generated WebGL only. This keeps every file openable from disk and publishable as an Artifact. One exception: a user-supplied hero background video, referenced by relative path (see phase 3 in [phases.md](phases.md)) — pages using it review from disk, not as Artifacts.
 - Warn on skipping, never block.
 - All workflow knowledge lives in this folder — keep it portable (copying `.claude/skills/buildlandingpage/` to another machine/project must be sufficient).

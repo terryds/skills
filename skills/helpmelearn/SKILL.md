@@ -10,7 +10,7 @@ Guide the user from "I want to learn X" to a finished, personalized textbook the
 
 **This skill is fully self-contained.** All phase definitions, quiz mechanics, and templates live in [phases.md](phases.md) in this skill folder. Never depend on any file outside this folder for workflow rules.
 
-Core model: `learning/` is the study workspace for **one subject per project directory**. The book inside it is a Pandoc project that accretes chapter by chapter, and **the book adapts to the learner, not the other way around** — the placement quiz shapes the syllabus, and each chapter's quiz results calibrate the next chapter. `progress.md` is the learner's record; if a chapter isn't quizzed there, it isn't learned.
+Core model: `learning/` is the study workspace for **one subject per project directory**. The book inside it is a Pandoc project that accretes module by module, and **the book adapts to the learner, not the other way around** — the placement quiz shapes the syllabus, and each module's quiz results calibrate the next module. Writing stays ahead of reading (the next module lands before the current one is finished), so the learner never waits on generation. `progress.md` is the learner's record; if a chapter isn't quizzed there, it isn't learned.
 
 **Pandoc is a hard dependency.** Check for it before scaffolding (Step 2) and again on entering phase 4. If missing, offer to install (`brew install pandoc` / `apt install pandoc` / `pkg install pandoc` on Termux) or ask the user to. PDF output additionally needs a PDF engine (`tectonic`, `pdflatex`, or `wkhtmltopdf`) — if none is found, offer to install `tectonic`, and until one exists build HTML + EPUB only and say so; never let a missing LaTeX stack block the workflow.
 
@@ -78,7 +78,7 @@ Every session in phase 5 follows the same rhythm, driven by `progress.md`:
    - **Active mode** — for when they don't feel like reading: teach the chapter conversationally, Socratic back-and-forth — short explanation, then a probing question, adjust from their answer — until the ideas land.
 4. **Quiz the chapter** when the user feels ready. Score it into `progress.md`; wrong answers become weak-spot entries (concept, not question).
 5. **Project checkpoints** — when the syllabus puts a project here: set it up, let the user build it themselves, review their work honestly, and only mark it done when it actually works. Don't build it for them — hints before answers.
-6. **Write the next chapter** just-in-time, calibrated to the quiz history (shaky prerequisites → open with a bridging recap; consistently strong → tighten the pace). Then re-run `build.sh`.
+6. **Keep the writing ahead of the reading** — when the user *starts* the last chapter of module N, write all of module N+1 in one batch, calibrated to module N's quiz history (shaky prerequisites → open with a bridging recap; consistently strong → tighten the pace). Batching per module means the next module is always waiting when the current one finishes — the user never sits through generation. If a quiz result contradicts an assumption in an already-written unread chapter, patch that chapter surgically before the user reads it. Re-run `build.sh` after any writing.
 
 When every syllabus chapter is quizzed and every project is done, offer graduation (phase 6). Not before — but if the user wants to graduate early, warn once and comply.
 

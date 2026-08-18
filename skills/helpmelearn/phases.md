@@ -127,10 +127,10 @@ Status: in-progress
 
 ## Phase 4 — Book bootstrap
 
-- **Deliverables:** `learning/book/` (pandoc project: `metadata.yaml`, `build.sh`, `99-answer-key.md`, `images/`) with the **first 2–3 chapters** written and built, plus `learning/progress.md` created.
+- **Deliverables:** `learning/book/` (pandoc project: `metadata.yaml`, `build.sh`, `99-answer-key.md`, `images/`) with **all of module 1's chapters** written and built, plus `learning/progress.md` created.
 - **Done when:** `build.sh` runs clean, the user has opened the built book and likes the shape of it, and `progress.md` exists. Then flip `progress.md` to `Status: learning`.
 
-Entry check: confirm pandoc exists (and note whether a PDF engine does — see SKILL.md). Scaffold the book, write chapters 1 through 2–3 per the chapter template below, build, and hand the user the `dist/` paths.
+Entry check: confirm pandoc exists (and note whether a PDF engine does — see SKILL.md). Scaffold the book, write every chapter of module 1 per the chapter template below (a complete, coherent unit — the learner starts with a whole module in hand), build, and hand the user the `dist/` paths.
 
 ### Chapter template
 
@@ -263,7 +263,7 @@ Status: bootstrapping
 The session rhythm lives in SKILL.md Step 5. Phase-specific mechanics:
 
 - **Conversational quizzes** are the real quizzes: 3–5 questions per chapter, 1–2 at a time, AskUserQuestion for multiple-choice and free-form for "explain it back." Score as n/total into `progress.md`; each miss becomes a *concept* on the weak-spots list, with the why explained immediately after the attempt.
-- **Just-in-time chapters**: before writing chapter N, reread the quiz history. Shaky prerequisite → open with a two-paragraph bridging recap; strong streak → tighten pace and raise exercise difficulty. Keep the chapter template's shape either way. Rebuild after every chapter and mention the fresh `dist/` paths.
+- **Module-batched writing, always ahead of the reader**: when the user *starts* the last chapter of module N, write all of module N+1 in one batch — reread the quiz history first. Shaky prerequisite → open the module with a bridging recap; strong streak → tighten pace and raise exercise difficulty. Keep the chapter template's shape either way. The learner should never wait on generation: if the buffer ever runs out (e.g. they skipped ahead), write the next module immediately before continuing. If a quiz result contradicts an assumption in an already-written unread chapter, patch that chapter surgically before they reach it. Rebuild after any writing and mention the fresh `dist/` paths.
 - **Deepdives** (`deepdive <topic>` or questions mid-study): answer at the learner's level, in the book's voice, with the same example standards (real output, worked examples). If a deepdive reveals a chapter gap, offer to patch the chapter — the book is living until graduation.
 - **Syllabus drift**: if the loop reveals the syllabus was wrong (too fast, missing a chapter, wrong order), update `syllabus.md` with the user's approval and note it in the session log — syllabus first, then chapters, same spirit as spec-first.
 

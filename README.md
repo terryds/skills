@@ -72,7 +72,7 @@ Anti-slop is a hard rule throughout: no filler copy, no decorative ornament, no 
 
 ### helpmelearn
 
-Learning happens in a `learning/` folder — one subject per project directory. The book adapts to the learner, not the other way around: a placement quiz shapes the syllabus (skip what you know, target the gaps), and each chapter's quiz results calibrate the next chapter. The book is a Pandoc project (pandoc is a hard dependency; PDF needs a LaTeX engine like `tectonic`, otherwise it builds HTML + EPUB) written chapter-by-chapter: subchapters with concept → worked example → try-it beats, real code with real output, "Go deeper" prompt boxes, chapter quizzes (answers in a separate answer key so print doesn't spoil itself), and a project per module.
+Learning happens in a `learning/` folder — one subject per project directory. The book adapts to the learner, not the other way around: a placement quiz shapes the syllabus (skip what you know, target the gaps), and each chapter's quiz results calibrate the next chapter. The book is a Pandoc project (pandoc is a hard dependency; PDF needs a LaTeX engine like `tectonic`, otherwise it builds HTML + EPUB) written module-by-module, always a module ahead of where you're reading: subchapters with concept → worked example → try-it beats, real code with real output, "Go deeper" prompt boxes, chapter quizzes (answers in a separate answer key so print doesn't spoil itself), and a project per module.
 
 ```
 /helpmelearn                  # detect state, resume the active phase (or scaffold on first run)
@@ -90,7 +90,7 @@ Learning happens in a `learning/` folder — one subject per project directory. 
 | 1 | Intake | `profile.md` | You could brief a human tutor on this learner in three sentences |
 | 2 | Placement quiz | `assessment.md` | Level + known/unknown map written, and you say "that's about right" |
 | 3 | Syllabus | `syllabus.md` | You approve the table of contents — nothing is written before this gate |
-| 4 | Book bootstrap | `book/` scaffold + first 2–3 chapters + `progress.md` | Build runs clean and you like the shape of the book |
+| 4 | Book bootstrap | `book/` scaffold + all of module 1 + `progress.md` | Build runs clean and you like the shape of the book |
 | 5 | Learning loop | `progress.md` kept current | Every chapter quizzed, every project verified |
 | 6 | Graduation | Polished book in `book/dist/` | Final quiz scored, closing chapter + journey appendix in, export clean |
 

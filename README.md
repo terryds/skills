@@ -27,6 +27,7 @@ cp -r /tmp/my-skills/skills/helpmeplan ~/.claude/skills/helpmeplan
 |-------|--------------|
 | [helpmeplan](skills/helpmeplan/) | Guided planning workflow — takes a project from brainstorm to a build-ready `spec/` folder through 5 phases: brainstorm, scope, design, mockups, architecture. Filesystem is the state; it detects where you left off and resumes. |
 | [buildlandingpage](skills/buildlandingpage/) | Guided landing-page workflow — takes a product idea to a finished, self-contained landing page through 5 phases: brainstorm, branding, hero section, page structure, full page. Generates style and hero options (WebGL shaders, inline SVG) for you to pick from. Filesystem is the state; it resumes where you left off. |
+| [helpmelearn](skills/helpmelearn/) | Guided learning workflow — takes a subject from "I want to learn X" to a personalized Pandoc-built textbook and a tutored learning loop through 6 phases: intake, placement quiz, syllabus, book bootstrap, learning loop, graduation. Quizzes interactively, tracks weak spots, exports HTML/EPUB/PDF. Filesystem is the state; it resumes where you left off. |
 
 ### helpmeplan
 
@@ -68,6 +69,32 @@ Landing-page work happens in a `landing/` folder, one numbered phase directory e
 | 5 | Full page | `index.html` | "I'd ship this" |
 
 Anti-slop is a hard rule throughout: no filler copy, no decorative ornament, no fake trust badges — every word and pixel serves the pitch.
+
+### helpmelearn
+
+Learning happens in a `learning/` folder — one subject per project directory. The book adapts to the learner, not the other way around: a placement quiz shapes the syllabus (skip what you know, target the gaps), and each chapter's quiz results calibrate the next chapter. The book is a Pandoc project (pandoc is a hard dependency; PDF needs a LaTeX engine like `tectonic`, otherwise it builds HTML + EPUB) written chapter-by-chapter: subchapters with concept → worked example → try-it beats, real code with real output, "Go deeper" prompt boxes, chapter quizzes (answers in a separate answer key so print doesn't spoil itself), and a project per module.
+
+```
+/helpmelearn                  # detect state, resume the active phase (or scaffold on first run)
+/helpmelearn status           # report where learning stands, do no work
+/helpmelearn next             # advance the loop: study, quiz, or write the next chapter
+/helpmelearn quiz             # quiz the current chapter
+/helpmelearn review           # spaced review of weak spots
+/helpmelearn deepdive <topic> # deep, level-calibrated explanation of one topic
+/helpmelearn build            # re-export the book (HTML/EPUB/PDF)
+/helpmelearn redo 2           # reopen a completed phase
+```
+
+| # | Phase | Deliverable | Done when |
+|---|-------|-------------|-----------|
+| 1 | Intake | `profile.md` | You could brief a human tutor on this learner in three sentences |
+| 2 | Placement quiz | `assessment.md` | Level + known/unknown map written, and you say "that's about right" |
+| 3 | Syllabus | `syllabus.md` | You approve the table of contents — nothing is written before this gate |
+| 4 | Book bootstrap | `book/` scaffold + first 2–3 chapters + `progress.md` | Build runs clean and you like the shape of the book |
+| 5 | Learning loop | `progress.md` kept current | Every chapter quizzed, every project verified |
+| 6 | Graduation | Polished book in `book/dist/` | Final quiz scored, closing chapter + journey appendix in, export clean |
+
+The loop offers two study modes every session — self-study ("read the chapter, come back with questions") or active Socratic back-and-forth for days you won't read — plus spaced review of weak spots before new material. Graduation is the finish line: a final comprehensive quiz, a closing chapter written with hindsight, your quiz journey as an appendix, and the finished personalized textbook as the artifact you walk away with.
 
 ## License
 

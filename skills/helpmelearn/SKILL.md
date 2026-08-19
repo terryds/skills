@@ -67,7 +67,68 @@ Each phase has a "done when" criterion in [phases.md](phases.md). When it looks 
 2. On confirmation: flip the deliverable's `Status:` line, announce the next phase in one line.
 3. If the user wants to skip ahead or work out of order: **warn once** (name what's incomplete and the risk — e.g. a book written without a placement quiz is calibrated blind), then comply. This skill is a guide, not a cop.
 
-## Step 5 — The learning loop (phase 5 rhythm)
+## Step 5 — Offer the finish-the-book script (once, at phase 4 exit)
+
+When phase 4's gate passes (module 1 approved, `progress.md` flipped to `learning`), offer **once** to generate `finishbook.sh` in the project root — a script the user launches before walking away. It runs Claude Code unattended in a detached tmux session to write every remaining chapter of the book, so they come back to a complete draft.
+
+Be honest about the trade-off when offering: batch-writing the rest gives up per-module calibration — those chapters are calibrated only to the placement quiz and module 1. The learning loop compensates (the book is living until graduation, so quiz results still reshape unread chapters via surgical patches — Step 6), but a learner who wants maximum adaptivity should decline and let the loop write module by module.
+
+What the generated script must do (same mechanics as an overnight build script):
+
+- Run the agent in a **detached tmux session** named `writebook-<project-dir-name>` (sanitized — tmux forbids `.` and `:`); a fixed name collides when another project's script is still alive. **tmux is required** — check it's installed when generating the script; if missing, offer to install (`brew install tmux` / `apt install tmux` / `pkg install tmux` on Termux) or ask the user to. Under Termux, grab `termux-wake-lock` first.
+- Launch `claude "<kickoff prompt>" --permission-mode bypassPermissions` as the **interactive TUI, not `-p` print mode** — attaching shows the live session. Capture a raw timestamped log with `tmux pipe-pane` into `learning/`.
+- The kickoff prompt confines the agent to `learning/` and tells it: read `profile.md`, `assessment.md`, `syllabus.md`, `progress.md`, and every existing chapter first; write every remaining syllabus chapter matching the existing chapters' conventions exactly; **never modify chapters `progress.md` marks as read or quizzed**; after each chapter run `build.sh`, update that chapter's `progress.md` line to "written, not yet read", and append one line to `learning/WRITING-LOG.md`; when finished or blocked, write `learning/WRITING-REPORT.md` (what was written, what was skipped and why).
+
+Template (adapt the prompt to the subject):
+
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")"
+command -v termux-wake-lock >/dev/null 2>&1 && termux-wake-lock
+SESSION="writebook-$(basename "$PWD" | tr -c 'a-zA-Z0-9_-' '-')"
+SESSION="${SESSION%-}"
+LOG="learning/writebook-$(date +%Y%m%d-%H%M).log"
+PROMPT='Finish writing the book in learning/book/. First read learning/profile.md,
+learning/assessment.md, learning/syllabus.md, learning/progress.md, and every
+existing chapter. Then write every remaining chapter from the syllabus, matching
+the existing chapters'\'' structure and conventions exactly: one NN-slug.md file
+per chapter; subchapter H2 sections each running concept -> worked example (for
+code, run it and include the real output — never fabricate) -> try-it exercise;
+one or two "Go deeper" prompt boxes; a chapter-level Quiz with answers appended
+to 99-answer-key.md; a Project section where the syllabus assigns one. Calibrate
+everything to the learner profile and placement assessment. Never modify chapters
+that progress.md marks as read or quizzed, and write only inside learning/. After
+each chapter: run build.sh inside learning/book/, update the chapter'\''s line in
+learning/progress.md to "written, not yet read", and append one line to
+learning/WRITING-LOG.md. When finished or blocked, write learning/WRITING-REPORT.md:
+what was written, what was skipped and why.'
+command -v tmux >/dev/null 2>&1 || {
+  echo "tmux is required. Install it first: brew install tmux / apt install tmux / pkg install tmux (Termux)" >&2
+  exit 1
+}
+tmux has-session -t "=$SESSION" 2>/dev/null && {
+  echo "Session '$SESSION' already exists — attach: tmux attach -t $SESSION, or kill it first: tmux kill-session -t $SESSION" >&2
+  exit 1
+}
+# resolve claude to an absolute path — tmux spawns a non-login shell whose PATH
+# may not include ~/.local/bin
+CLAUDE_BIN="$(command -v claude || true)"
+[ -z "$CLAUDE_BIN" ] && [ -x "$HOME/.local/bin/claude" ] && CLAUDE_BIN="$HOME/.local/bin/claude"
+[ -z "$CLAUDE_BIN" ] && { echo "claude CLI not found (checked PATH and ~/.local/bin)" >&2; exit 1; }
+# interactive TUI (not -p print mode): attaching shows the live session
+CMD="$(printf %q "$CLAUDE_BIN") $(printf %q "$PROMPT") --permission-mode bypassPermissions"
+tmux new-session -d -s "$SESSION" "$CMD"
+tmux pipe-pane -t "=$SESSION" -o "cat >> $(printf %q "$PWD/$LOG")"
+echo "Agent running in tmux session '$SESSION' — watch: tmux attach -t $SESSION (detach: Ctrl+B d)"
+echo "Raw log: $LOG · readable record: learning/WRITING-LOG.md · report: learning/WRITING-REPORT.md"
+```
+
+After writing the file, make it executable — `chmod +x finishbook.sh` (skip on Windows). The `chmod` may trigger a permission prompt — tell the user it's coming and ask them to approve it; if blocked, tell them to run `chmod +x finishbook.sh` themselves. Then give the exact command: `./finishbook.sh`.
+
+When offering, **warn plainly**: `bypassPermissions` means the agent runs commands without asking. The user should commit/push everything first and only run it in a directory (and on a machine) they're comfortable handing over. Generate the script and stop — **never launch it yourself**; it's the user's to run.
+
+## Step 6 — The learning loop (phase 5 rhythm)
 
 Every session in phase 5 follows the same rhythm, driven by `progress.md`:
 
@@ -78,11 +139,11 @@ Every session in phase 5 follows the same rhythm, driven by `progress.md`:
    - **Active mode** — for when they don't feel like reading: teach the chapter conversationally, Socratic back-and-forth — short explanation, then a probing question, adjust from their answer — until the ideas land.
 4. **Quiz the chapter** when the user feels ready. Score it into `progress.md`; wrong answers become weak-spot entries (concept, not question).
 5. **Project checkpoints** — when the syllabus puts a project here: set it up, let the user build it themselves, review their work honestly, and only mark it done when it actually works. Don't build it for them — hints before answers.
-6. **Keep the writing ahead of the reading** — when the user *starts* the last chapter of module N, write all of module N+1 in one batch, calibrated to module N's quiz history (shaky prerequisites → open with a bridging recap; consistently strong → tighten the pace). Batching per module means the next module is always waiting when the current one finishes — the user never sits through generation. If a quiz result contradicts an assumption in an already-written unread chapter, patch that chapter surgically before the user reads it. Re-run `build.sh` after any writing.
+6. **Keep the writing ahead of the reading** — when the user *starts* the last chapter of module N, write all of module N+1 in one batch, calibrated to module N's quiz history (shaky prerequisites → open with a bridging recap; consistently strong → tighten the pace). Batching per module means the next module is always waiting when the current one finishes — the user never sits through generation. If a quiz result contradicts an assumption in an already-written unread chapter, patch that chapter surgically before the user reads it. Re-run `build.sh` after any writing. (When `finishbook.sh` already wrote the whole book, this beat is patch-only — no new chapters to write, but the calibration duty stands.)
 
 When every syllabus chapter is quizzed and every project is done, offer graduation (phase 6). Not before — but if the user wants to graduate early, warn once and comply.
 
-## Step 6 — Graduation (phase 6)
+## Step 7 — Graduation (phase 6)
 
 The finish line is the definitive export — the book as a *deliverable*, not just a side effect:
 

@@ -94,7 +94,7 @@ Learning happens in a `learning/` folder — one subject per project directory. 
 | 5 | Learning loop | `progress.md` kept current | Every chapter quizzed, every project verified |
 | 6 | Graduation | Polished book in `book/dist/` | Final quiz scored, closing chapter + journey appendix in, export clean |
 
-The loop offers two study modes every session — self-study ("read the chapter, come back with questions") or active Socratic back-and-forth for days you won't read — plus spaced review of weak spots before new material. Graduation is the finish line: a final comprehensive quiz, a closing chapter written with hindsight, your quiz journey as an appendix, and the finished personalized textbook as the artifact you walk away with.
+The loop offers two study modes every session — self-study ("read the chapter, come back with questions") or active Socratic back-and-forth for days you won't read — plus spaced review of weak spots before new material. Once module 1 ships, the skill offers once to generate a `finishbook.sh` (same pattern as helpmeplan's `overnight.sh`): a detached-tmux, `bypassPermissions` Claude Code run that writes the whole remaining book unattended — trading per-module calibration for a complete draft now, with the loop patching unread chapters as your quiz results come in. Graduation is the finish line: a final comprehensive quiz, a closing chapter written with hindsight, your quiz journey as an appendix, and the finished personalized textbook as the artifact you walk away with.
 
 ## License
 

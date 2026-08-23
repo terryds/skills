@@ -28,6 +28,7 @@ cp -r /tmp/my-skills/skills/helpmeplan ~/.claude/skills/helpmeplan
 | [helpmeplan](skills/helpmeplan/) | Guided planning workflow — takes a project from brainstorm to a build-ready `spec/` folder through 5 phases: brainstorm, scope, design, mockups, architecture. Filesystem is the state; it detects where you left off and resumes. |
 | [buildlandingpage](skills/buildlandingpage/) | Guided landing-page workflow — takes a product idea to a finished, self-contained landing page through 5 phases: brainstorm, branding, hero section, page structure, full page. Generates style and hero options (WebGL shaders, inline SVG) for you to pick from. Filesystem is the state; it resumes where you left off. |
 | [helpmelearn](skills/helpmelearn/) | Guided learning workflow — takes a subject from "I want to learn X" to a personalized Pandoc-built textbook and a tutored learning loop through 6 phases: intake, placement quiz, syllabus, book bootstrap, learning loop, graduation. Quizzes interactively, tracks weak spots, exports HTML/EPUB/PDF. Filesystem is the state; it resumes where you left off. |
+| [pty-oauth-login](skills/pty-oauth-login/) | Completes interactive CLI login/OAuth flows (`claude mcp login`, `gh auth login`, …) from a headless session — no SSH, no local terminal. Wraps the login command in a real pty, relays the authorize URL to you (approve on any device, even your phone), and feeds the pasted redirect URL back through a FIFO. |
 
 ### helpmeplan
 
@@ -95,6 +96,16 @@ Learning happens in a `learning/` folder — one subject per project directory. 
 | 6 | Graduation | Polished book in `book/dist/` | Final quiz scored, closing chapter + journey appendix in, export clean |
 
 The loop offers two study modes every session — self-study ("read the chapter, come back with questions") or active Socratic back-and-forth for days you won't read — plus spaced review of weak spots before new material. Once module 1 ships, the skill offers once to generate a `finishbook.sh` (same pattern as helpmeplan's `overnight.sh`): a detached-tmux, `bypassPermissions` Claude Code run that writes the whole remaining book unattended — trading per-module calibration for a complete draft now, with the loop patching unread chapters as your quiz results come in. Graduation is the finish line: a final comprehensive quiz, a closing chapter written with hindsight, your quiz journey as an appendix, and the finished personalized textbook as the artifact you walk away with.
+
+### pty-oauth-login
+
+Interactive logins (`claude mcp login <name>`, `claude auth login`, `gh auth login`, …) are raw-mode TUIs that bail with `stdin isn't a terminal` when run from a headless agent session. This skill drives their manual "paste the redirect URL" fallback without SSH:
+
+1. Runs the login command through the bundled [pty-bridge.py](skills/pty-oauth-login/scripts/pty-bridge.py) (a small `pty.fork()` wrapper) so the CLI thinks it has a real terminal, with a FIFO as stdin so input can arrive in a later turn.
+2. Extracts the authorize URL from the log and hands it to you as a tappable link — open it on *any* device (your phone is fine), approve, and the redirect to `localhost:<port>` will fail to load. That's expected.
+3. You paste back the full failed-redirect URL (it still carries `?code=...&state=...`); the skill writes it into the FIFO (with the Enter keystroke as a separate write — raw-mode inputs won't submit otherwise) and verifies the credential actually stuck.
+
+Only works for CLIs that offer a manual paste fallback; a login that *only* supports automatic local-browser redirect genuinely needs a terminal and browser on the same machine.
 
 ## License
 

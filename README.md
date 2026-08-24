@@ -29,6 +29,7 @@ cp -r /tmp/my-skills/skills/helpmeplan ~/.claude/skills/helpmeplan
 | [buildlandingpage](skills/buildlandingpage/) | Guided landing-page workflow — takes a product idea to a finished, self-contained landing page through 5 phases: brainstorm, branding, hero section, page structure, full page. Generates style and hero options (WebGL shaders, inline SVG) for you to pick from. Filesystem is the state; it resumes where you left off. |
 | [helpmelearn](skills/helpmelearn/) | Guided learning workflow — takes a subject from "I want to learn X" to a personalized Pandoc-built textbook and a tutored learning loop through 6 phases: intake, placement quiz, syllabus, book bootstrap, learning loop, graduation. Quizzes interactively, tracks weak spots, exports HTML/EPUB/PDF. Filesystem is the state; it resumes where you left off. |
 | [pty-oauth-login](skills/pty-oauth-login/) | Completes interactive CLI login/OAuth flows (`claude mcp login`, `gh auth login`, …) from a headless session — no SSH, no local terminal. Wraps the login command in a real pty, relays the authorize URL to you (approve on any device, even your phone), and feeds the pasted redirect URL back through a FIFO. |
+| [competitor-deep-dive](skills/competitor-deep-dive/) | Deep-dive competitor analysis — given a company name or URL, researches their ads (Meta/TikTok/Google ad libraries via bundled Playwright scrapers), SEO, GTM, product/pricing/reviews, and synthesizes recommendations. Output is a live tabbed report on here.now with a CSV download per data tab. |
 
 ### helpmeplan
 
@@ -106,6 +107,23 @@ Interactive logins (`claude mcp login <name>`, `claude auth login`, `gh auth log
 3. You paste back the full failed-redirect URL (it still carries `?code=...&state=...`); the skill writes it into the FIFO (with the Enter keystroke as a separate write — raw-mode inputs won't submit otherwise) and verifies the credential actually stuck.
 
 Only works for CLIs that offer a manual paste fallback; a login that *only* supports automatic local-browser redirect genuinely needs a terminal and browser on the same machine.
+
+### competitor-deep-dive
+
+Input is a company name or website; the skill resolves the other (ad libraries key on the *advertiser/legal* name, not the domain — e.g. "Wise" is "WISE PAYMENTS LIMITED"). It then builds six tabs in order, each grounded in the one before:
+
+| Tab | What's in it | CSV |
+|-----|--------------|-----|
+| Product Analysis | Value prop, features, pricing tiers, reviews from Google Business, App Store / Play Store (real headless browser — these pages are client-rendered), and G2/Capterra/Trustpilot | `product.csv` |
+| GTM | Sales motion (self-serve vs demo-gated), ICP, positioning, channel-mix signal | `gtm.csv` |
+| Ads | Up to 10 ads per platform from Meta, Google, and TikTok ad libraries, with media downloaded locally (CDN URLs expire) | `ads.csv` |
+| SEO | Sitemap size and section breakdown, title/meta/H1s, on-page keyword signals (explicitly *not* rank data) | `seo.csv` |
+| Recommendations | "Where we can win" — every item tied to a specific finding above | — |
+| Overview | One-paragraph summary, one snippet per tab, plus founders, year founded, and employee count, each hyperlinked to its source | — |
+
+The scrapers in [scripts/](skills/competitor-deep-dive/scripts/) encode the platform gotchas (Meta's exact-byline matching, TikTok's country dropdown + autocomplete-only search, Google's `GetCreativeById` trick); `build-report.js` assembles `content.json` + scraper output into a neobrutalist static site and the CSVs, and the result is published with the `here-now` skill and verified in a real browser before it's reported done. Sourcing rule throughout: if a fact can't be linked to a source, it isn't stated as fact — no guessed review counts or headcounts.
+
+**Setup (once):** `cd ~/.claude/skills/competitor-deep-dive && npm install && npx playwright install --with-deps chromium`.
 
 ## License
 

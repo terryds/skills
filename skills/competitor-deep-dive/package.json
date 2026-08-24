@@ -1,0 +1,8 @@
+{
+  "name": "competitor-deep-dive-skill",
+  "private": true,
+  "description": "Scraper/report-builder scripts for the competitor-deep-dive skill. Run `npm install && npx playwright install --with-deps chromium` once before first use.",
+  "dependencies": {
+    "playwright": "^1.47.0"
+  }
+}

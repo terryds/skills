@@ -1,0 +1,81 @@
+{
+  "company": {
+    "name": "Nimbus Desk",
+    "website": "nimbusdesk.example",
+    "legalEntity": "Nimbus Desk Technologies Inc.",
+    "tagline": "AI agent platform for customer support & sales teams",
+    "founders": [
+      { "name": "Jane Doe", "url": "https://www.linkedin.com/in/<founder-handle>/" },
+      { "name": "John Roe", "url": "https://example.com/press/<article-naming-the-founders>" }
+    ],
+    "yearFounded": { "value": "2023", "sourceUrl": "https://tracxn.com/d/companies/<company>", "sourceLabel": "Tracxn" },
+    "employees": { "value": "112 employees, self-reported range 51-200", "sourceUrl": "https://www.linkedin.com/company/<company-handle>/", "sourceLabel": "LinkedIn" }
+  },
+  "adsMetaCap": 10,
+  "adsGoogleSummary": "~200 active ads reported, 10 sampled (7 with content recovered)",
+  "adsTiktokSummary": "0 active ads",
+  "adsTiktokNote": "No advertiser match under any name variant tried — confirmed via both autocomplete and a full keyword search (Total ads: 0).",
+  "overview": {
+    "paragraph": "One-paragraph company summary — legal entity, what they do, how they position, headline scale claims (customer count etc), HQ/geography.",
+    "snippets": [
+      { "label": "Product", "value": "4 pricing tiers, all quote-based via WhatsApp — no public prices" },
+      { "label": "GTM", "value": "Hybrid motion: self-serve trial CTA, but sales-assisted pricing" },
+      { "label": "Ads", "value": "19 Meta ads (100% video) · ~200 Google ads · 0 TikTok ads" },
+      { "label": "SEO", "value": "647 indexed URLs · 488 blog posts, updated daily-ish" },
+      { "label": "Reviews", "value": "4.8★ Google Business, 4.2★/41 App Store, no rating on Play Store" },
+      { "label": "Top opportunity", "value": "Zero TikTok presence despite a consumer-heavy target segment" }
+    ]
+  },
+  "product": {
+    "positioning": "Core value-prop headline + 3-5 features, in prose.",
+    "pricingHeaders": [
+      { "key": "tier", "label": "Tier" }, { "key": "waba", "label": "WABA" }, { "key": "mau", "label": "MAU" },
+      { "key": "credits", "label": "AI Credits" }, { "key": "seats", "label": "Seats" }, { "key": "type", "label": "AI Type" }, { "key": "notable", "label": "Notable" }
+    ],
+    "pricingRows": [
+      { "tier": "Starter", "waba": "1", "mau": "1,000", "credits": "5,000", "seats": "3", "type": "Simple", "notable": "—" }
+    ],
+    "pricingNote": "One-line finding about the pricing model (e.g. numeric prices published or not, self-serve vs quote-based).",
+    "reviewsRows": [
+      { "source": "Google Business Profile", "url": "https://www.google.com/maps/search/<company>", "rating": "4.8★", "notes": "Review count gated behind sign-in (not guessed)" },
+      { "source": "iOS App Store", "url": "https://apps.apple.com/.../<app-id>?see-all=reviews&platform=iphone", "rating": "4.2★ (41 ratings)", "notes": "Real review text found via a real browser — use domcontentloaded, not networkidle" },
+      { "source": "Google Play", "url": "https://play.google.com/store/apps/details?id=<app-id>", "rating": "No rating shown", "notes": "State plainly if the listing has no visible rating widget" },
+      { "source": "G2 / Capterra / Trustpilot", "url": "", "rating": "Not listed", "notes": "No presence found (web search first, then a real-browser check before concluding absence)" }
+    ],
+    "reviewsNote": "Synthesis paragraph reconciling the different review sources — note any tension between them (e.g. an academic/press sentiment study vs. real app-store review text).",
+    "csvRows": [
+      { "source": "homepage", "type": "feature", "text": "...", "rating": "", "url": "https://..." },
+      { "source": "pricing", "type": "pricing", "text": "...", "rating": "", "url": "https://.../pricing" },
+      { "source": "Google Business Profile", "type": "review", "text": "...", "rating": "4.8", "url": "https://www.google.com/maps/search/<company>" }
+    ]
+  },
+  "gtm": {
+    "rows": [
+      { "signal": "Sales motion", "observation": "Self-serve vs demo-gated — read the primary CTA on homepage/pricing." },
+      { "signal": "ICP / target segment", "observation": "Who the copy, case studies, and customer logos are speaking to." },
+      { "signal": "Positioning & messaging", "observation": "The core value-prop headline + 2-3 differentiation claims." },
+      { "signal": "Channel mix", "observation": "One line synthesizing what the Ads/SEO tabs show." }
+    ],
+    "csvRows": [
+      { "signal": "Sales motion", "observation": "...", "source_url": "https://..." }
+    ]
+  },
+  "seo": {
+    "onPageRows": [
+      { "element": "Title", "content": "..." },
+      { "element": "Meta description", "content": "..." },
+      { "element": "H1", "content": "..." }
+    ],
+    "sitemapRows": [
+      { "section": "Total pages (sitemap-pages.xml)", "count": "159" },
+      { "section": "Blog posts (sitemap-blog.xml)", "count": "488 (most recent: 2026-08-23)" }
+    ],
+    "csvRows": [
+      { "keyword_or_phrase": "...", "source": "title|meta|h1|body|sitemap", "count_or_context": "..." }
+    ]
+  },
+  "recommendations": [
+    "<b>Short label.</b> Full sentence(s), grounded in a specific finding from an earlier tab — never generic advice.",
+    "<b>Another label.</b> ..."
+  ]
+}

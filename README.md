@@ -9,7 +9,18 @@ My collection of [agent skills](https://code.claude.com/docs/en/skills) for Clau
 Via [skills.sh](https://skills.sh) (works with Claude Code, Codex, and other agents — copies editable skill files into your project):
 
 ```bash
+# all skills
 npx skills@latest add terryds/skills
+
+# a single skill
+npx skills@latest add terryds/skills --skill helpmeplan
+
+# several at once, or user-wide (~/.claude) instead of the current project
+npx skills@latest add terryds/skills --skill helpmeplan helpmelearn
+npx skills@latest add terryds/skills --skill pty-oauth-login --global
+
+# see what's available without installing
+npx skills@latest add terryds/skills --list
 ```
 
 Or install a single skill manually by copying its folder:

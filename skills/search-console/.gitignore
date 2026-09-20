@@ -1,0 +1,3 @@
+# Service account key and the cached access token — never commit these
+data/gsc-credentials.json
+data/.gsc-token.json

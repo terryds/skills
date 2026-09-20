@@ -41,6 +41,7 @@ cp -r /tmp/my-skills/skills/helpmeplan ~/.claude/skills/helpmeplan
 | [helpmelearn](skills/helpmelearn/) | Guided learning workflow — takes a subject from "I want to learn X" to a personalized Pandoc-built textbook and a tutored learning loop through 6 phases: intake, placement quiz, syllabus, book bootstrap, learning loop, graduation. Quizzes interactively, tracks weak spots, exports HTML/EPUB/PDF. Filesystem is the state; it resumes where you left off. |
 | [pty-oauth-login](skills/pty-oauth-login/) | Completes interactive CLI login/OAuth flows (`claude mcp login`, `gh auth login`, …) from a headless session — no SSH, no local terminal. Wraps the login command in a real pty, relays the authorize URL to you (approve on any device, even your phone), and feeds the pasted redirect URL back through a FIFO. |
 | [competitor-deep-dive](skills/competitor-deep-dive/) | Deep-dive competitor analysis — given a company name or URL, researches their ads (Meta/TikTok/Google ad libraries via bundled Playwright scrapers), SEO, GTM, product/pricing/reviews, and synthesizes recommendations. Output is a live tabbed report on here.now with a CSV download per data tab. |
+| [search-console](skills/search-console/) | Read-only Google Search Console analysis — search performance by query/page/country/device/date, period-over-period movers, "quick win" keywords ranking just off page one, URL index inspection, and sitemap health. One dependency-free Bun script, authenticated with a service account on the `webmasters.readonly` scope. |
 
 ### helpmeplan
 
@@ -135,6 +136,23 @@ Input is a company name or website; the skill resolves the other (ad libraries k
 The scrapers in [scripts/](skills/competitor-deep-dive/scripts/) encode the platform gotchas (Meta's exact-byline matching, TikTok's country dropdown + autocomplete-only search, Google's `GetCreativeById` trick); `build-report.js` assembles `content.json` + scraper output into a neobrutalist static site and the CSVs, and the result is published with the `here-now` skill and verified in a real browser before it's reported done. Sourcing rule throughout: if a fact can't be linked to a source, it isn't stated as fact — no guessed review counts or headcounts.
 
 **Setup (once):** `cd ~/.claude/skills/competitor-deep-dive && npm install && npx playwright install --with-deps chromium`.
+
+### search-console
+
+Gives the agent real Search Console data instead of SEO guesswork, through one bundled script — [bin/gsc](skills/search-console/bin/gsc), Bun, zero dependencies. It signs a service-account JWT itself and only ever requests the `webmasters.readonly` scope, so no command can write, submit, or delete anything.
+
+```bash
+gsc sites                     # properties and permission level
+gsc query <site> [flags]      # performance rows — --dim query,page,country,device,date
+gsc compare <site> [flags]    # this period vs the one before it; --losers for steepest declines
+gsc quick-wins <site>         # high impressions, ranking at positions 8–20
+gsc inspect <site> <url>      # index status for a single URL
+gsc sitemaps <site>           # submission dates, error and warning counts
+```
+
+The skill also carries the judgment around the numbers: a "why did traffic drop?" drill-down (date → losing pages → losing queries → index inspection), brand vs non-brand splits, and the caveats that keep reports honest — data lags ~2 days, dimension sums are sampled and never equal the property total, and `compare` keeps keys that vanished entirely because those are usually the biggest losses.
+
+**Setup (once):** needs [Bun](https://bun.sh). Create a Google Cloud service account with the Search Console API enabled, add its email to your property under Settings → Users and permissions (Restricted is enough), and save the JSON key as `data/gsc-credentials.json` in the skill folder (gitignored) or point `GSC_CREDENTIALS` at it.
 
 ## License
 

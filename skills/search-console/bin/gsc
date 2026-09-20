@@ -1,0 +1,400 @@
+#!/usr/bin/env bun
+// Read-only Google Search Console client.
+//
+// Auth: a service account JSON key at data/gsc-credentials.json (override with
+// GSC_CREDENTIALS). The token is minted with the webmasters.readonly scope
+// only, so every call is structurally incapable of writing.
+
+import { createSign } from 'node:crypto';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
+const ROOT = resolve(import.meta.dir, '..');
+const CREDS = process.env.GSC_CREDENTIALS || resolve(ROOT, 'data/gsc-credentials.json');
+const TOKEN_CACHE = resolve(ROOT, 'data/.gsc-token.json');
+const SCOPE = 'https://www.googleapis.com/auth/webmasters.readonly';
+const API = 'https://www.googleapis.com/webmasters/v3';
+// URL Inspection lives on the newer Search Console host, not webmasters/v3.
+const INSPECT_API = 'https://searchconsole.googleapis.com/v1';
+
+function die(msg) {
+  console.error(msg);
+  process.exit(1);
+}
+
+function b64url(input) {
+  return Buffer.from(input).toString('base64url');
+}
+
+// Mint an access token by signing a JWT assertion with the service account key.
+// Cached on disk because every invocation is a fresh process.
+async function accessToken() {
+  if (!existsSync(CREDS)) {
+    die(`No credentials at ${CREDS}\nDrop the service account JSON key there (see Setup in SKILL.md).`);
+  }
+  const key = JSON.parse(readFileSync(CREDS, 'utf8'));
+  if (key.type !== 'service_account') {
+    die(`${CREDS} is not a service account key (type: ${key.type}).`);
+  }
+
+  // Tied to the account, so swapping GSC_CREDENTIALS never reuses another key's token.
+  if (existsSync(TOKEN_CACHE)) {
+    const cached = JSON.parse(readFileSync(TOKEN_CACHE, 'utf8'));
+    if (cached.client_email === key.client_email && cached.expires_at > Date.now() + 60_000) {
+      return cached.access_token;
+    }
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const claims = {
+    iss: key.client_email,
+    scope: SCOPE,
+    aud: key.token_uri || 'https://oauth2.googleapis.com/token',
+    iat: now,
+    exp: now + 3600,
+  };
+  const body = `${b64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }))}.${b64url(JSON.stringify(claims))}`;
+  const signature = createSign('RSA-SHA256').update(body).sign(key.private_key).toString('base64url');
+
+  const res = await fetch(claims.aud, {
+    method: 'POST',
+    headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+      assertion: `${body}.${signature}`,
+    }),
+  });
+  const json = await res.json();
+  if (!res.ok) die(`Token request failed (${res.status}): ${json.error_description || JSON.stringify(json)}`);
+
+  writeFileSync(
+    TOKEN_CACHE,
+    JSON.stringify({
+      client_email: key.client_email,
+      access_token: json.access_token,
+      expires_at: Date.now() + json.expires_in * 1000,
+    }),
+    { mode: 0o600 },
+  );
+  return json.access_token;
+}
+
+async function api(path, { method = 'GET', body, base = API } = {}) {
+  const token = await accessToken();
+  const res = await fetch(`${base}${path}`, {
+    method,
+    headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const reason = json.error?.message || res.statusText;
+    if (res.status === 403) {
+      die(`403 from Google: ${reason}\nIs the service account added under Settings → Users and permissions for this property?`);
+    }
+    die(`${res.status} from Google: ${reason}`);
+  }
+  return json;
+}
+
+// --- date helpers -----------------------------------------------------------
+
+const iso = (d) => d.toISOString().slice(0, 10);
+const daysAgo = (n) => {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() - n);
+  return iso(d);
+};
+
+// GSC data lags ~2 days, so a "last 28 days" window ends 2 days back.
+function window(days, startArg, endArg) {
+  if (startArg && endArg) return { startDate: startArg, endDate: endArg };
+  // Inclusive range, so the start is days-1 back from the end (2 days ago).
+  return { startDate: daysAgo(days + 1), endDate: daysAgo(2) };
+}
+
+// --- arg parsing ------------------------------------------------------------
+
+// Flags that never take a value, so `gsc query --json <site>` keeps its <site>.
+const BOOLEAN_FLAGS = new Set(['json', 'losers', 'help']);
+
+function parseArgs(argv) {
+  const flags = {};
+  const positional = [];
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg.startsWith('--')) {
+      const [name, inline] = arg.slice(2).split('=');
+      if (inline !== undefined) flags[name] = inline;
+      else if (BOOLEAN_FLAGS.has(name)) flags[name] = true;
+      else if (argv[i + 1] && !argv[i + 1].startsWith('--')) flags[name] = argv[++i];
+      else flags[name] = true;
+    } else positional.push(arg);
+  }
+  return { flags, positional };
+}
+
+// --filter query:contains:flight  →  the API's dimensionFilterGroups shape
+function parseFilters(raw) {
+  if (!raw) return [];
+  const list = Array.isArray(raw) ? raw : [raw];
+  return list.flatMap((entry) =>
+    String(entry).split(',,').map((f) => {
+      const [dimension, operator, ...rest] = f.split(':');
+      if (!rest.length) die(`Bad --filter "${f}" — use dimension:operator:value (e.g. query:contains:flight)`);
+      return { dimension, operator, expression: rest.join(':') };
+    }),
+  );
+}
+
+// --- output -----------------------------------------------------------------
+
+function table(rows, columns) {
+  if (!rows.length) return '(no rows)';
+  const widths = columns.map((c) =>
+    Math.max(c.label.length, ...rows.map((r) => String(c.value(r)).length)),
+  );
+  const line = (cells) => cells.map((c, i) => String(c).padEnd(widths[i])).join('  ').trimEnd();
+  return [
+    line(columns.map((c) => c.label)),
+    line(widths.map((w) => '-'.repeat(w))),
+    ...rows.map((r) => line(columns.map((c) => c.value(r)))),
+  ].join('\n');
+}
+
+const num = (n) => Math.round(n).toLocaleString('en-US');
+const pct = (n) => `${(n * 100).toFixed(1)}%`;
+const pos = (n) => n.toFixed(1);
+const truncate = (s, n) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
+
+// --- commands ---------------------------------------------------------------
+
+async function fetchRows(site, { dimensions, filters, limit, startDate, endDate, searchType }) {
+  const body = {
+    startDate,
+    endDate,
+    dimensions,
+    rowLimit: Math.min(limit, 25000),
+    type: searchType,
+    dataState: 'final',
+  };
+  if (filters.length) body.dimensionFilterGroups = [{ filters }];
+  const data = await api(`/sites/${encodeURIComponent(site)}/searchAnalytics/query`, {
+    method: 'POST',
+    body,
+  });
+  return data.rows || [];
+}
+
+async function cmdSites() {
+  const data = await api('/sites');
+  const rows = data.siteEntry || [];
+  if (!rows.length) {
+    console.log('(no properties — is the service account added to any property in Search Console?)');
+    return;
+  }
+  console.log(table(rows, [
+    { label: 'PROPERTY', value: (r) => r.siteUrl },
+    { label: 'PERMISSION', value: (r) => r.permissionLevel },
+  ]));
+}
+
+async function cmdQuery(site, flags) {
+  const dimensions = String(flags.dim || 'query').split(',').map((d) => d.trim());
+  const limit = Number(flags.limit || 25);
+  const { startDate, endDate } = window(Number(flags.days || 28), flags.start, flags.end);
+  const rows = await fetchRows(site, {
+    dimensions,
+    filters: parseFilters(flags.filter),
+    limit,
+    startDate,
+    endDate,
+    searchType: flags.type || 'web',
+  });
+
+  if (flags.json) return console.log(JSON.stringify({ startDate, endDate, rows }, null, 2));
+
+  console.log(`${site}  ${startDate} → ${endDate}  (${rows.length} rows)\n`);
+  console.log(table(rows, [
+    ...dimensions.map((d, i) => ({ label: d.toUpperCase(), value: (r) => truncate(r.keys[i], 60) })),
+    { label: 'CLICKS', value: (r) => num(r.clicks) },
+    { label: 'IMPR', value: (r) => num(r.impressions) },
+    { label: 'CTR', value: (r) => pct(r.ctr) },
+    { label: 'POS', value: (r) => pos(r.position) },
+  ]));
+}
+
+// Same dimension, two adjacent windows, joined on the key → movers.
+async function cmdCompare(site, flags) {
+  const dimensions = String(flags.dim || 'query').split(',').map((d) => d.trim());
+  const days = Number(flags.days || 28);
+  const limit = Number(flags.limit || 25);
+  const filters = parseFilters(flags.filter);
+  const searchType = flags.type || 'web';
+
+  const current = window(days, flags.start, flags.end);
+  // Measure the span from the dates, so --start/--end gets an equal-length prior window.
+  const span = Math.round((Date.parse(current.endDate) - Date.parse(current.startDate)) / 86_400_000) + 1;
+  const priorEnd = new Date(`${current.startDate}T00:00:00Z`);
+  priorEnd.setUTCDate(priorEnd.getUTCDate() - 1);
+  const priorStart = new Date(priorEnd);
+  priorStart.setUTCDate(priorStart.getUTCDate() - (span - 1));
+  const prior = { startDate: iso(priorStart), endDate: iso(priorEnd) };
+
+  const [nowRows, thenRows] = await Promise.all([
+    fetchRows(site, { dimensions, filters, limit: 25000, ...current, searchType }),
+    fetchRows(site, { dimensions, filters, limit: 25000, ...prior, searchType }),
+  ]);
+
+  const before = new Map(thenRows.map((r) => [r.keys.join(' | '), r]));
+  const seen = new Set();
+  const merged = nowRows.map((r) => {
+    const key = r.keys.join(' | ');
+    seen.add(key);
+    const was = before.get(key);
+    return {
+      key,
+      clicks: r.clicks,
+      wasClicks: was?.clicks || 0,
+      position: r.position,
+      wasPosition: was?.position ?? null,
+    };
+  });
+  // Keys that vanished entirely are the most interesting losses — keep them.
+  for (const [key, r] of before) {
+    if (!seen.has(key)) {
+      merged.push({ key, clicks: 0, wasClicks: r.clicks, position: null, wasPosition: r.position });
+    }
+  }
+
+  const movers = merged
+    .map((m) => ({ ...m, delta: m.clicks - m.wasClicks }))
+    .sort((a, b) => (flags.losers ? a.delta - b.delta : Math.abs(b.delta) - Math.abs(a.delta)))
+    .slice(0, limit);
+
+  if (flags.json) return console.log(JSON.stringify({ current, prior, movers }, null, 2));
+
+  console.log(`${site}  ${current.startDate}→${current.endDate}  vs  ${prior.startDate}→${prior.endDate}\n`);
+  console.log(table(movers, [
+    { label: dimensions.join('+').toUpperCase(), value: (r) => truncate(r.key, 60) },
+    { label: 'CLICKS', value: (r) => num(r.clicks) },
+    { label: 'WAS', value: (r) => num(r.wasClicks) },
+    { label: 'DELTA', value: (r) => (r.delta > 0 ? `+${num(r.delta)}` : num(r.delta)) },
+    { label: 'POS', value: (r) => (r.position === null ? '—' : pos(r.position)) },
+    { label: 'WASPOS', value: (r) => (r.wasPosition === null ? '—' : pos(r.wasPosition)) },
+  ]));
+}
+
+// High impressions + ranking just off page one = cheapest wins available.
+async function cmdQuickWins(site, flags) {
+  const limit = Number(flags.limit || 25);
+  const minImpressions = Number(flags['min-impressions'] || 100);
+  const [lo, hi] = String(flags.positions || '8-20').split('-').map(Number);
+  const { startDate, endDate } = window(Number(flags.days || 28), flags.start, flags.end);
+
+  const rows = await fetchRows(site, {
+    dimensions: ['query', 'page'],
+    filters: parseFilters(flags.filter),
+    limit: 25000,
+    startDate,
+    endDate,
+    searchType: flags.type || 'web',
+  });
+
+  const wins = rows
+    .filter((r) => r.position >= lo && r.position <= hi && r.impressions >= minImpressions)
+    .sort((a, b) => b.impressions - a.impressions)
+    .slice(0, limit);
+
+  if (flags.json) return console.log(JSON.stringify({ startDate, endDate, wins }, null, 2));
+
+  console.log(`${site}  ${startDate} → ${endDate}  positions ${lo}-${hi}, ≥${num(minImpressions)} impressions  (${wins.length} of ${rows.length} rows)\n`);
+  console.log(table(wins, [
+    { label: 'QUERY', value: (r) => truncate(r.keys[0], 45) },
+    { label: 'PAGE', value: (r) => truncate(r.keys[1], 50) },
+    { label: 'IMPR', value: (r) => num(r.impressions) },
+    { label: 'CLICKS', value: (r) => num(r.clicks) },
+    { label: 'CTR', value: (r) => pct(r.ctr) },
+    { label: 'POS', value: (r) => pos(r.position) },
+  ]));
+}
+
+async function cmdInspect(site, url, flags) {
+  const data = await api('/urlInspection/index:inspect', {
+    base: INSPECT_API,
+    method: 'POST',
+    body: { inspectionUrl: url, siteUrl: site },
+  });
+  if (flags.json) return console.log(JSON.stringify(data, null, 2));
+
+  const r = data.inspectionResult || {};
+  const idx = r.indexStatusResult || {};
+  console.log(`${url}\n`);
+  console.log(`verdict:        ${idx.verdict || '—'}`);
+  console.log(`coverage:       ${idx.coverageState || '—'}`);
+  console.log(`robots:         ${idx.robotsTxtState || '—'}`);
+  console.log(`indexing:       ${idx.indexingState || '—'}`);
+  console.log(`last crawled:   ${idx.lastCrawlTime || '—'}`);
+  console.log(`canonical:      ${idx.googleCanonical || '—'}`);
+  console.log(`user canonical: ${idx.userCanonical || '—'}`);
+  if (r.mobileUsabilityResult) console.log(`mobile:         ${r.mobileUsabilityResult.verdict}`);
+  if (r.richResultsResult) console.log(`rich results:   ${r.richResultsResult.verdict}`);
+}
+
+async function cmdSitemaps(site, flags) {
+  const data = await api(`/sites/${encodeURIComponent(site)}/sitemaps`);
+  const rows = data.sitemap || [];
+  if (flags.json) return console.log(JSON.stringify(rows, null, 2));
+  if (!rows.length) return console.log('(no sitemaps submitted)');
+  console.log(table(rows, [
+    { label: 'SITEMAP', value: (r) => truncate(r.path, 70) },
+    { label: 'SUBMITTED', value: (r) => (r.lastSubmitted || '—').slice(0, 10) },
+    { label: 'DOWNLOADED', value: (r) => (r.lastDownloaded || '—').slice(0, 10) },
+    { label: 'ERRORS', value: (r) => r.errors || 0 },
+    { label: 'WARNINGS', value: (r) => r.warnings || 0 },
+  ]));
+}
+
+const USAGE = `gsc — read-only Google Search Console client
+
+  gsc sites
+  gsc query <site> [--dim query,page,country,device,date] [--days 28] [--limit 25]
+                   [--start YYYY-MM-DD --end YYYY-MM-DD] [--filter dim:op:value]
+                   [--type web|image|video|news|discover] [--json]
+  gsc compare <site> [--dim query] [--days 28] [--limit 25] [--losers] [--json]
+  gsc quick-wins <site> [--positions 8-20] [--min-impressions 100] [--days 28] [--json]
+  gsc inspect <site> <url> [--json]
+  gsc sitemaps <site> [--json]
+
+Filters chain with ',,':  --filter "query:contains:flight,,country:equals:idn"
+Operators: contains, notContains, equals, notEquals, includingRegex, excludingRegex
+Dates default to the last N days ending 2 days ago (Search Console's data lag).`;
+
+const { flags, positional } = parseArgs(process.argv.slice(2));
+const [command, ...rest] = positional;
+
+const needsSite = (name) => rest[0] || die(`${name} needs a <site> — run 'gsc sites' to see the exact property URL.`);
+
+switch (command) {
+  case 'sites':
+    await cmdSites();
+    break;
+  case 'query':
+    await cmdQuery(needsSite('query'), flags);
+    break;
+  case 'compare':
+    await cmdCompare(needsSite('compare'), flags);
+    break;
+  case 'quick-wins':
+    await cmdQuickWins(needsSite('quick-wins'), flags);
+    break;
+  case 'inspect':
+    await cmdInspect(needsSite('inspect'), rest[1] || die('inspect needs a <url>'), flags);
+    break;
+  case 'sitemaps':
+    await cmdSitemaps(needsSite('sitemaps'), flags);
+    break;
+  default:
+    console.log(USAGE);
+    process.exit(command ? 1 : 0);
+}

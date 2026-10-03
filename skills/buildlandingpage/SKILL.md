@@ -2,6 +2,7 @@
 name: buildlandingpage
 description: Guided landing-page workflow — takes a product idea to a finished landing page design through 5 phases (brainstorm, branding, hero section, page structure, full page). Generates style and hero options for the user to pick from, including WebGL/shader and SVG assets. Use when the user wants to create a landing page, continue landing-page work, or asks "where were we" about it. Detects current phase from the filesystem and resumes.
 argument-hint: "[status | redo <phase-number>]"
+disable-model-invocation: true
 ---
 
 # buildlandingpage — guided landing page workflow

@@ -2,6 +2,7 @@
 name: helpmeplan
 description: Guided planning workflow — takes a project from brainstorm to a build-ready spec/ folder (per-area plans, project structure, M0→Mn roadmap) through 5 phases (brainstorm, scope, design, mockups, architecture). Use when the user wants to plan a project, continue planning, or asks "where were we" about planning. Detects current phase from the filesystem and resumes.
 argument-hint: "[status | spec | redo <phase-number>]"
+disable-model-invocation: true
 ---
 
 # helpmeplan — guided planning workflow

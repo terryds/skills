@@ -2,6 +2,7 @@
 name: helpmelearn
 description: Guided learning workflow — takes a subject from "I want to learn X" to a personalized Pandoc-built textbook and a tutored learning loop, through 6 phases (intake, placement quiz, syllabus, book bootstrap, learning loop, graduation). Quizzes interactively, tracks progress and weak spots, exports HTML/PDF/EPUB. Use when the user wants to learn something, continue learning, or asks "where were we" about learning. Detects current phase from the filesystem and resumes.
 argument-hint: "[status | next | quiz | review | deepdive <topic> | build | redo <phase-number>]"
+disable-model-invocation: true
 ---
 
 # helpmelearn — guided learning workflow
